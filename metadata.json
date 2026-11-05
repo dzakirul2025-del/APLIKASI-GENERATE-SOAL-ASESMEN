@@ -1,0 +1,8 @@
+{
+  "name": "Generator Soal Cerdas – MIN 1 Paser",
+  "description": "Aplikasi penyusun instrumen evaluasi pembelajaran MI berkualitas, adaptif, berbasis AI Gemini dengan dukungan soal gambar, persamaan matematika LaTeX, kisi-kisi, kartu soal, dan ekspor Word/PDF/Excel.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
