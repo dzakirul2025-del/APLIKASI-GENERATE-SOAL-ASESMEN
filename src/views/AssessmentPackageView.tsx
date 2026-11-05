@@ -17,7 +17,12 @@ import {
 } from 'lucide-react';
 import { AssessmentPackage, Question, AppSettings } from '../types';
 import MathView from '../components/MathView';
-import { exportQuestionsToDocx } from '../utils/exportDocx';
+import {
+  exportQuestionsToDocx,
+  exportAnswerKeyAndDiscussionDocx,
+  exportRubrikDocx,
+  exportKisiKisiFromQuestionsToDocx,
+} from '../utils/exportDocx';
 import { MAPEL_OPTIONS } from './GenerateAiView';
 
 interface AssessmentPackageViewProps {
@@ -165,6 +170,8 @@ export const AssessmentPackageView: React.FC<AssessmentPackageViewProps> = ({
             <Save className="w-4 h-4" />
             <span>Simpan Paket</span>
           </button>
+          
+          {/* Naskah Soal Saja */}
           <button
             onClick={() =>
               exportQuestionsToDocx(
@@ -174,18 +181,77 @@ export const AssessmentPackageView: React.FC<AssessmentPackageViewProps> = ({
                 activePackage.semester,
                 activePackage.questions,
                 settings,
-                activeTabSub === 'kunci_rubrik',
-                activeTabSub === 'kunci_rubrik'
+                false,
+                false
               )
             }
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1.5 transition"
+            title="Download Naskah Soal Saja (Tanpa Kunci/Pembahasan untuk Siswa)"
+            className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1.5 transition shadow-2xs"
           >
             <FileDown className="w-4 h-4 text-emerald-700" />
-            <span>Export DOCX</span>
+            <span>Naskah Soal Saja</span>
           </button>
+
+          {/* Kunci & Pembahasan Terpisah */}
+          <button
+            onClick={() =>
+              exportAnswerKeyAndDiscussionDocx(
+                `Kunci_${activePackage.title}`,
+                activePackage.mapel,
+                activePackage.kelas,
+                activePackage.semester,
+                activePackage.questions,
+                settings
+              )
+            }
+            title="Download File Terpisah: Kunci Jawaban & Pembahasan Lengkap"
+            className="px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-1.5 transition shadow-2xs"
+          >
+            <FileText className="w-4 h-4 text-amber-700" />
+            <span>Kunci & Pembahasan</span>
+          </button>
+
+          {/* Rubrik Penilaian Terpisah */}
+          <button
+            onClick={() =>
+              exportRubrikDocx(
+                `Rubrik_${activePackage.title}`,
+                activePackage.mapel,
+                activePackage.kelas,
+                activePackage.semester,
+                activePackage.questions,
+                settings
+              )
+            }
+            title="Download File Terpisah: Pedoman Penskoran & Rubrik Penilaian"
+            className="px-3 py-2 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-950 border border-teal-300 flex items-center gap-1.5 transition shadow-2xs"
+          >
+            <FileDown className="w-4 h-4 text-teal-700" />
+            <span>Rubrik Penilaian</span>
+          </button>
+
+          {/* Kisi-Kisi Terpisah */}
+          <button
+            onClick={() =>
+              exportKisiKisiFromQuestionsToDocx(
+                `Kisi_Kisi_${activePackage.title}`,
+                activePackage.mapel,
+                activePackage.kelas,
+                activePackage.semester,
+                activePackage.questions,
+                settings
+              )
+            }
+            title="Download File Terpisah: Kisi-Kisi Soal Asesmen"
+            className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-950 border border-blue-300 flex items-center gap-1.5 transition shadow-2xs"
+          >
+            <FileDown className="w-4 h-4 text-blue-700" />
+            <span>Kisi-Kisi Soal</span>
+          </button>
+
           <button
             onClick={() => window.print()}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1.5 transition"
+            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1.5 transition"
           >
             <Printer className="w-4 h-4 text-slate-600" />
             <span>Cetak Langsung</span>

@@ -22,8 +22,8 @@ export const exportQuestionsToDocx = async (
   semester: string,
   questions: Question[],
   settings: AppSettings,
-  includeAnswers: boolean = true,
-  includeDiscussion: boolean = true
+  includeAnswers: boolean = false,
+  includeDiscussion: boolean = false
 ) => {
   const children: any[] = [];
 
@@ -648,3 +648,577 @@ export const exportKisiKisiToDocx = async (blueprint: KisiKisi, settings: AppSet
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+// ==========================================
+// 1. DOKUMEN KHUSUS: KUNCI JAWABAN & PEMBAHASAN (TERPISAH)
+// ==========================================
+export const exportAnswerKeyAndDiscussionDocx = async (
+  title: string,
+  mapel: string,
+  kelas: string,
+  semester: string,
+  questions: Question[],
+  settings: AppSettings
+) => {
+  const children: any[] = [];
+
+  // Kop Surat
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+          bold: true,
+          size: 22,
+          font: 'Times New Roman',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: settings.madrasahName.toUpperCase(),
+          bold: true,
+          size: 26,
+          color: '006A4E',
+          font: 'Times New Roman',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [
+        new TextRun({
+          text: settings.madrasahAddress,
+          italics: true,
+          size: 18,
+          font: 'Times New Roman',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 150 },
+      children: [
+        new TextRun({
+          text: `DOKUMEN KUNCI JAWABAN & PEMBAHASAN SOAL`,
+          bold: true,
+          size: 26,
+          font: 'Times New Roman',
+          underline: {},
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 250 },
+      children: [
+        new TextRun({
+          text: `Mata Pelajaran: ${mapel} | Kelas: ${kelas} | Semester: ${semester} | Total: ${questions.length} Butir Soal`,
+          bold: true,
+          size: 20,
+          font: 'Times New Roman',
+        }),
+      ],
+    })
+  );
+
+  // Quick Table for Multiple Choice Keys if exists
+  const mcQuestions = questions.filter((q) => q.jenis.includes('Pilihan'));
+  if (mcQuestions.length > 0) {
+    children.push(
+      new Paragraph({
+        spacing: { before: 100, after: 100 },
+        children: [
+          new TextRun({
+            text: 'I. TABEL KUNCI JAWABAN PILIHAN GANDA CEPAT',
+            bold: true,
+            size: 22,
+            font: 'Times New Roman',
+            color: '006A4E',
+          }),
+        ],
+      })
+    );
+
+    // Group in rows of 5 or 10
+    const keyRows: TableRow[] = [];
+    const chunkSize = 10;
+    for (let i = 0; i < mcQuestions.length; i += chunkSize) {
+      const slice = mcQuestions.slice(i, i + chunkSize);
+      
+      // Header row (Nomor Soal)
+      keyRows.push(
+        new TableRow({
+          children: slice.map(
+            (q) =>
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new TextRun({
+                        text: `No ${q.nomor}`,
+                        bold: true,
+                        size: 18,
+                        font: 'Times New Roman',
+                      }),
+                    ],
+                  }),
+                ],
+              })
+          ),
+        })
+      );
+
+      // Value row (Kunci Jawaban)
+      keyRows.push(
+        new TableRow({
+          children: slice.map(
+            (q) =>
+              new TableCell({
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: [
+                      new TextRun({
+                        text: q.kunciJawaban || '-',
+                        bold: true,
+                        size: 22,
+                        color: '006A4E',
+                        font: 'Times New Roman',
+                      }),
+                    ],
+                  }),
+                ],
+              })
+          ),
+        })
+      );
+    }
+
+    children.push(
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        rows: keyRows,
+      })
+    );
+    children.push(new Paragraph({ text: '', spacing: { before: 200 } }));
+  }
+
+  // Detailed Discussion for each question
+  children.push(
+    new Paragraph({
+      spacing: { before: 200, after: 150 },
+      children: [
+        new TextRun({
+          text: 'II. RINCIAN KUNCI JAWABAN & PEMBAHASAN LENGKAP SETIAP BUTIR SOAL',
+          bold: true,
+          size: 22,
+          font: 'Times New Roman',
+          color: '006A4E',
+        }),
+      ],
+    })
+  );
+
+  questions.forEach((q) => {
+    children.push(
+      new Paragraph({
+        spacing: { before: 120, after: 60 },
+        children: [
+          new TextRun({
+            text: `Nomor ${q.nomor}. [${q.jenis}] – Level: ${q.levelKognitif || 'C3'} | Bobot: ${q.skor || 2}`,
+            bold: true,
+            size: 21,
+            font: 'Times New Roman',
+            color: '006A4E',
+          }),
+        ],
+      }),
+      new Paragraph({
+        indent: { left: 360 },
+        spacing: { after: 60 },
+        children: [
+          new TextRun({ text: 'Pertanyaan: ', bold: true, font: 'Times New Roman', size: 20 }),
+          new TextRun({ text: q.pertanyaan, font: 'Times New Roman', size: 20 }),
+        ],
+      }),
+      new Paragraph({
+        indent: { left: 360 },
+        spacing: { after: 60 },
+        children: [
+          new TextRun({ text: 'Kunci Jawaban: ', bold: true, color: '006A4E', font: 'Times New Roman', size: 20 }),
+          new TextRun({ text: `${q.kunciJawaban}`, bold: true, font: 'Times New Roman', size: 20 }),
+        ],
+      }),
+      new Paragraph({
+        indent: { left: 360 },
+        spacing: { after: 120 },
+        children: [
+          new TextRun({ text: 'Pembahasan Konseptual: ', bold: true, italics: true, font: 'Times New Roman', size: 20 }),
+          new TextRun({ text: q.pembahasan || 'Sesuai dengan konsep capaian Kurikulum Merdeka.', italics: true, font: 'Times New Roman', size: 20 }),
+        ],
+      })
+    );
+  });
+
+  // Signature
+  children.push(
+    new Paragraph({ text: '', spacing: { before: 300 } }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.NONE },
+        bottom: { style: BorderStyle.NONE },
+        left: { style: BorderStyle.NONE },
+        right: { style: BorderStyle.NONE },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({ children: [new TextRun({ text: 'Mengetahui,', font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: 'Kepala MIN 1 Paser', font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ text: '', spacing: { before: 700 } }),
+                new Paragraph({ children: [new TextRun({ text: settings.headmasterName, bold: true, underline: {}, font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: `NIP. ${settings.headmasterNIP}`, font: 'Times New Roman', size: 19 })] }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({ children: [new TextRun({ text: 'Tanah Grogot, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: 'Penyusun / Kord. Kurikulum,', font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ text: '', spacing: { before: 700 } }),
+                new Paragraph({ children: [new TextRun({ text: settings.teacherName, bold: true, underline: {}, font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: `NIP. ${settings.teacherNIP}`, font: 'Times New Roman', size: 19 })] }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+  );
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        children,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Kunci_Jawaban_dan_Pembahasan_${mapel.replace(/\s+/g, '_')}_MIN1PASER.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+// ==========================================
+// 2. DOKUMEN KHUSUS: PEDOMAN PENSKORAN & RUBRIK PENILAIAN (TERPISAH)
+// ==========================================
+export const exportRubrikDocx = async (
+  title: string,
+  mapel: string,
+  kelas: string,
+  semester: string,
+  questions: Question[],
+  settings: AppSettings
+) => {
+  const children: any[] = [];
+
+  children.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+          bold: true,
+          size: 22,
+          font: 'Times New Roman',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({
+          text: settings.madrasahName.toUpperCase(),
+          bold: true,
+          size: 26,
+          color: '006A4E',
+          font: 'Times New Roman',
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 200 },
+      children: [
+        new TextRun({
+          text: `PEDOMAN PENSKORAN & RUBRIK PENILAIAN ASESMEN`,
+          bold: true,
+          size: 24,
+          font: 'Times New Roman',
+          underline: {},
+        }),
+      ],
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 250 },
+      children: [
+        new TextRun({
+          text: `Mata Pelajaran: ${mapel} | Kelas: ${kelas} | Semester: ${semester}`,
+          bold: true,
+          size: 20,
+          font: 'Times New Roman',
+        }),
+      ],
+    })
+  );
+
+  // Rubrik Table
+  const tableRows = [
+    new TableRow({
+      tableHeader: true,
+      children: [
+        'No',
+        'Bentuk Soal',
+        'Indikator Kompetensi',
+        'Kriteria & Kunci Jawaban',
+        'Skor Maksimal',
+      ].map(
+        (headerText) =>
+          new TableCell({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [
+                  new TextRun({
+                    text: headerText,
+                    bold: true,
+                    size: 18,
+                    font: 'Times New Roman',
+                  }),
+                ],
+              }),
+            ],
+          })
+      ),
+    }),
+  ];
+
+  let totalSkorMaks = 0;
+
+  questions.forEach((q) => {
+    const skorItem = q.skor || (q.jenis.includes('Essay') ? 15 : q.jenis === 'Isian Singkat' ? 5 : 2);
+    totalSkorMaks += skorItem;
+
+    let kriteria = '';
+    if (q.jenis.includes('Pilihan')) {
+      kriteria = `Jawaban benar memilih opsi [${q.kunciJawaban}]: Skor ${skorItem}. Jawaban salah/kosong: Skor 0.`;
+    } else if (q.jenis === 'Isian Singkat') {
+      kriteria = `Menuliskan kata/istilah/angka "${q.kunciJawaban}" dengan benar: Skor ${skorItem}. Salah: Skor 0.`;
+    } else {
+      kriteria = `Rubrik Uraian:\n- Pemahaman konsep tepat & logis: Skor ${Math.round(skorItem * 0.5)}\n- Penjelasan lengkap & sistematis: Skor ${Math.round(skorItem * 0.3)}\n- Kesimpulan/contoh kontekstual: Skor ${Math.round(skorItem * 0.2)}\nKunci Jawaban Inti: ${q.kunciJawaban}`;
+    }
+
+    tableRows.push(
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ text: String(q.nomor), alignment: AlignmentType.CENTER })] }),
+          new TableCell({ children: [new Paragraph({ text: q.jenis, alignment: AlignmentType.CENTER })] }),
+          new TableCell({ children: [new Paragraph({ text: q.indikatorSoal || q.tujuanPembelajaran || '-' })] }),
+          new TableCell({ children: [new Paragraph({ text: kriteria })] }),
+          new TableCell({ children: [new Paragraph({ text: String(skorItem), alignment: AlignmentType.CENTER })] }),
+        ],
+      })
+    );
+  });
+
+  // Total Row
+  tableRows.push(
+    new TableRow({
+      children: [
+        new TableCell({
+          columnSpan: 4,
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.RIGHT,
+              children: [
+                new TextRun({
+                  text: 'TOTAL SKOR MAKSIMAL = ',
+                  bold: true,
+                  size: 20,
+                  font: 'Times New Roman',
+                }),
+              ],
+            }),
+          ],
+        }),
+        new TableCell({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [
+                new TextRun({
+                  text: String(totalSkorMaks),
+                  bold: true,
+                  size: 20,
+                  color: '006A4E',
+                  font: 'Times New Roman',
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+  );
+
+  children.push(
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: tableRows,
+    })
+  );
+
+  // Formula Perhitungan Nilai Akhir
+  children.push(
+    new Paragraph({
+      spacing: { before: 200, after: 100 },
+      children: [
+        new TextRun({
+          text: 'RUMUS PENGHITUNGAN NILAI AKHIR (NA):',
+          bold: true,
+          size: 20,
+          font: 'Times New Roman',
+        }),
+      ],
+    }),
+    new Paragraph({
+      indent: { left: 360 },
+      spacing: { after: 200 },
+      children: [
+        new TextRun({
+          text: `Nilai Akhir = (Skor Perolehan Peserta Didik / ${totalSkorMaks}) × 100`,
+          bold: true,
+          color: '006A4E',
+          size: 20,
+          font: 'Times New Roman',
+        }),
+      ],
+    })
+  );
+
+  // Signatures
+  children.push(
+    new Paragraph({ text: '', spacing: { before: 200 } }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.NONE },
+        bottom: { style: BorderStyle.NONE },
+        left: { style: BorderStyle.NONE },
+        right: { style: BorderStyle.NONE },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({ children: [new TextRun({ text: 'Mengetahui,', font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: 'Kepala MIN 1 Paser', font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ text: '', spacing: { before: 700 } }),
+                new Paragraph({ children: [new TextRun({ text: settings.headmasterName, bold: true, underline: {}, font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: `NIP. ${settings.headmasterNIP}`, font: 'Times New Roman', size: 19 })] }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 50, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({ children: [new TextRun({ text: 'Tanah Grogot, ' + new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: 'Guru Pengampu,', font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ text: '', spacing: { before: 700 } }),
+                new Paragraph({ children: [new TextRun({ text: settings.teacherName, bold: true, underline: {}, font: 'Times New Roman', size: 20 })] }),
+                new Paragraph({ children: [new TextRun({ text: `NIP. ${settings.teacherNIP}`, font: 'Times New Roman', size: 19 })] }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    })
+  );
+
+  const doc = new Document({
+    sections: [
+      {
+        properties: { page: { margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+        children,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Rubrik_Penilaian_dan_Penskoran_${mapel.replace(/\s+/g, '_')}_MIN1PASER.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+// ==========================================
+// 3. DOKUMEN KHUSUS: KISI-KISI PENULISAN SOAL (DARI DAFTAR SOAL TERGENERATE)
+// ==========================================
+export const exportKisiKisiFromQuestionsToDocx = async (
+  title: string,
+  mapel: string,
+  kelas: string,
+  semester: string,
+  questions: Question[],
+  settings: AppSettings
+) => {
+  const blueprint: KisiKisi = {
+    id: `kk-${Date.now()}`,
+    title: `Kisi-Kisi Soal Asesmen ${mapel}`,
+    mapel,
+    kelas,
+    fase: Number(kelas) <= 2 ? 'A' : Number(kelas) <= 4 ? 'B' : 'C',
+    semester,
+    tahunPelajaran: settings.academicYear,
+    jenisAsesmen: title || 'Asesmen Sumatif Akhir Semester',
+    rows: questions.map((q, idx) => ({
+      nomor: idx + 1,
+      capaianPembelajaran: q.tujuanPembelajaran || `Peserta didik menguasai materi ${mapel}`,
+      tujuanPembelajaran: q.tujuanPembelajaran || `Menyelesaikan permasalahan ${mapel} pada butir ke-${idx + 1}`,
+      materi: q.mapel || mapel,
+      indikatorSoal: q.indikatorSoal || `Disajikan soal, siswa dapat menentukan jawaban dengan benar`,
+      levelKognitif: q.levelKognitif || 'C3 Mengaplikasikan',
+      bentukSoal: q.jenis,
+      nomorSoal: q.nomor || idx + 1,
+      tingkatKesulitan: q.tingkatKesulitan || 'Sedang',
+      skor: q.skor || 2,
+    })),
+    createdAt: new Date().toISOString(),
+  };
+
+  await exportKisiKisiToDocx(blueprint, settings);
+};
+

@@ -27,7 +27,12 @@ import {
 } from 'lucide-react';
 import { Question, JenisSoal, TingkatKesulitan, LevelKognitif, KarakterSoal, AppSettings } from '../types';
 import MathView from '../components/MathView';
-import { exportQuestionsToDocx } from '../utils/exportDocx';
+import {
+  exportQuestionsToDocx,
+  exportAnswerKeyAndDiscussionDocx,
+  exportRubrikDocx,
+  exportKisiKisiFromQuestionsToDocx,
+} from '../utils/exportDocx';
 import { generateClientQuestionsFallback } from '../utils/aiGeneratorFallback';
 
 interface GenerateAiViewProps {
@@ -566,10 +571,33 @@ export const GenerateAiView: React.FC<GenerateAiViewProps> = ({
               <Save className="w-4 h-4" />
               <span>{savedSuccess ? 'Semua Soal Tersimpan!' : `Simpan Semua ${generatedQuestions.length} Soal`}</span>
             </button>
+
+            {/* 1. Naskah Soal Saja */}
             <button
               onClick={() =>
                 exportQuestionsToDocx(
-                  `Asesmen_${mapel}_Kls${kelas}_${generatedQuestions.length}Soal`,
+                  `Naskah_Soal_${mapel}_Kls${kelas}_${generatedQuestions.length}Soal`,
+                  mapel,
+                  kelas,
+                  semester,
+                  generatedQuestions,
+                  settings,
+                  false,
+                  false
+                )
+              }
+              title="Ekspor Naskah Soal Bersih (Hanya Soal Saja Tanpa Kunci/Pembahasan untuk Siswa)"
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1.5 transition shadow-2xs"
+            >
+              <FileDown className="w-4 h-4 text-emerald-700" />
+              <span>1. Naskah Soal Saja (DOCX)</span>
+            </button>
+
+            {/* 2. Kunci Jawaban & Pembahasan Terpisah */}
+            <button
+              onClick={() =>
+                exportAnswerKeyAndDiscussionDocx(
+                  `Kunci_Pembahasan_${mapel}_Kls${kelas}`,
                   mapel,
                   kelas,
                   semester,
@@ -577,10 +605,49 @@ export const GenerateAiView: React.FC<GenerateAiViewProps> = ({
                   settings
                 )
               }
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1.5 transition"
+              title="Ekspor File Terpisah: Kunci Jawaban & Pembahasan Lengkap Guru"
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 flex items-center gap-1.5 transition shadow-2xs"
             >
-              <FileDown className="w-4 h-4 text-emerald-700" />
-              <span>Download DOCX ({generatedQuestions.length} Soal)</span>
+              <FileText className="w-4 h-4 text-amber-700" />
+              <span>2. Kunci & Pembahasan (File Terpisah)</span>
+            </button>
+
+            {/* 3. Rubrik Penilaian Terpisah */}
+            <button
+              onClick={() =>
+                exportRubrikDocx(
+                  `Rubrik_Penilaian_${mapel}_Kls${kelas}`,
+                  mapel,
+                  kelas,
+                  semester,
+                  generatedQuestions,
+                  settings
+                )
+              }
+              title="Ekspor File Terpisah: Pedoman Penskoran & Rubrik Penilaian Asesmen"
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-teal-50 hover:bg-teal-100 text-teal-950 border border-teal-300 flex items-center gap-1.5 transition shadow-2xs"
+            >
+              <Sliders className="w-4 h-4 text-teal-700" />
+              <span>3. Rubrik Penilaian (File Terpisah)</span>
+            </button>
+
+            {/* 4. Kisi-Kisi Soal Terpisah */}
+            <button
+              onClick={() =>
+                exportKisiKisiFromQuestionsToDocx(
+                  `Kisi_Kisi_${mapel}_Kls${kelas}`,
+                  mapel,
+                  kelas,
+                  semester,
+                  generatedQuestions,
+                  settings
+                )
+              }
+              title="Ekspor File Terpisah: Tabel Kisi-Kisi Penulisan Soal"
+              className="px-3 py-2 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-950 border border-blue-300 flex items-center gap-1.5 transition shadow-2xs"
+            >
+              <Layers className="w-4 h-4 text-blue-700" />
+              <span>4. Kisi-Kisi Soal (File Terpisah)</span>
             </button>
           </div>
         )}
