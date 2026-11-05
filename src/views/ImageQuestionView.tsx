@@ -150,7 +150,15 @@ export const ImageQuestionView: React.FC<ImageQuestionViewProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        console.warn('Image API non-JSON response:', rawText.slice(0, 150));
+        throw new Error('Server sedang mengalami beban tinggi. Silakan coba sesaat lagi.');
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Gagal memproses gambar dengan AI.');
       }

@@ -54,7 +54,15 @@ export const AnalisisSoalView: React.FC<AnalisisSoalViewProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        console.warn('Analisis non-JSON response:', rawText.slice(0, 150));
+        throw new Error('Layanan audit mutu soal sedang padat. Silakan coba kembali.');
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Gagal menganalisis butir soal.');
       }

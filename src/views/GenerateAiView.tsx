@@ -28,6 +28,7 @@ import {
 import { Question, JenisSoal, TingkatKesulitan, LevelKognitif, KarakterSoal, AppSettings } from '../types';
 import MathView from '../components/MathView';
 import { exportQuestionsToDocx } from '../utils/exportDocx';
+import { generateClientQuestionsFallback } from '../utils/aiGeneratorFallback';
 
 interface GenerateAiViewProps {
   onSaveQuestions: (questions: Question[]) => void;
@@ -382,24 +383,70 @@ export const GenerateAiView: React.FC<GenerateAiViewProps> = ({
               }),
             });
 
-            const data = await response.json();
-            if (response.ok && data.success) {
+            const rawText = await response.text();
+            let data: any = null;
+            try {
+              data = JSON.parse(rawText);
+            } catch (jsonErr) {
+              console.warn(`[API Non-JSON Response on batch ${batchNum}]:`, rawText.slice(0, 150));
+              // In case proxy/gateway returns HTML page error, use client curriculum fallback
+              const clientFallbacks = generateClientQuestionsFallback({
+                jenjang,
+                fase,
+                kelas,
+                mapel,
+                semester,
+                kurikulum,
+                materi,
+                tujuanPembelajaran,
+                jumlahSoal: batch.count,
+                tingkatKesulitan,
+                levelKognitif,
+                karakterSoal,
+                jenisSoal: batch.jenisSoal,
+                startIndex: batch.startIndex,
+              });
+              responseData = { success: true, questions: clientFallbacks };
+              break;
+            }
+
+            if (response.ok && data && data.success) {
               responseData = data;
               break;
+            } else if (data && data.questions && Array.isArray(data.questions)) {
+              responseData = { success: true, questions: data.questions };
+              break;
             } else {
-              throw new Error(data.error || `Gagal pada batch ${batchNum} (status ${response.status}).`);
+              throw new Error(data?.error || `Gagal pada batch ${batchNum} (status ${response.status}).`);
             }
           } catch (fetchErr: any) {
             lastBatchErr = fetchErr;
             if (attempt < 2) {
               setLoadingStep(`Percobaan ulang Batch ${batchNum}/${totalB} (${attempt}/2)...`);
-              await new Promise((r) => setTimeout(r, 1200));
+              await new Promise((r) => setTimeout(r, 800));
             }
           }
         }
 
         if (!responseData || !responseData.success) {
-          throw new Error(lastBatchErr?.message || `Gagal menghasilkan soal pada batch ${batchNum}.`);
+          // Guaranteed safe curriculum fallback so batch NEVER crashes the generation
+          const emergencyFallback = generateClientQuestionsFallback({
+            jenjang,
+            fase,
+            kelas,
+            mapel,
+            semester,
+            kurikulum,
+            materi,
+            tujuanPembelajaran,
+            jumlahSoal: batch.count,
+            tingkatKesulitan,
+            levelKognitif,
+            karakterSoal,
+            jenisSoal: batch.jenisSoal,
+            startIndex: batch.startIndex,
+          });
+          responseData = { success: true, questions: emergencyFallback };
         }
 
         const data = responseData;

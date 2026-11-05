@@ -114,7 +114,15 @@ export const KisiKisiView: React.FC<KisiKisiViewProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const rawText = await response.text();
+      let data: any = null;
+      try {
+        data = JSON.parse(rawText);
+      } catch (e) {
+        console.warn('Kisi-kisi non-JSON response:', rawText.slice(0, 150));
+        throw new Error('Layanan penyusun kisi-kisi sedang padat. Silakan klik buat kisi-kisi kembali.');
+      }
+
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Gagal membuat kisi-kisi.');
       }
